@@ -1,5 +1,4 @@
-pthread: pthread.h pthread.c _otherCFile.c _otherClib.c
-	gcc -g -o pthread pthread.h pthread.c _otherCFile.c _otherClib.c
- 
+pthread: pthread.h pthread.c
+	gcc -g -o pthread pthread.h pthread.c
 pthreadTest: pthread
-  ./pthread _otherfiles_
+	./pthread
