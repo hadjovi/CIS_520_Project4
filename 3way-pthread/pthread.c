@@ -1,9 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
 
 //--------------- Declare constants here --------------//
-#define ARRAY_LENGTH 100
+#define NUM_THREADS 4
 #define BUFFER_SIZE 2005
 
 //--------------- Declare Global Variable here --------------//
@@ -13,6 +14,8 @@ int LineCounter = 0;
 char **fileBuff;
 
 int *maxValues;
+
+pthread_mutex_t mutexsum;			// mutex for maxValues
 
 //--------------- Declare Functions Prototype here --------------//
 void getMax(int, int);
@@ -25,9 +28,11 @@ void printBuffer();
 
 void getAllMax();
 
+void *getMaxParrallel(void *myID);
+
 //--------------- Main Code starts here --------------//
 int main()
-{
+{    
     //open file
     FILE *filePointer;
     
@@ -41,21 +46,61 @@ int main()
 
     //printBuffer();
 
+    //Close the file
+    fclose(filePointer);
+
     //get Maximum ASCII value from each line
     maxValues = malloc(LineCounter * sizeof(int));
-    
-    printf("\n\n");
-    getAllMax();
-    printf("\n\n");
-    getMax(1, 50);
-    getMax(51, 100);
 
-   fclose(filePointer);
+    //Set up the pthreads ---------------
+    int i, rc;
+	pthread_t threads[NUM_THREADS];
+	pthread_attr_t attr;
+	void *status;
+
+	/* Initialize and set thread detached attribute */
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    //----------------------------------------------------------//
+
+
+    //Start parallel work---------------------------//
+    for (i = 0; i < NUM_THREADS; i++ ) 
+    {
+	      rc = pthread_create(&threads[i], &attr, getMaxParrallel, (void *)i);
+	      if (rc) {
+	        printf("ERROR; return code from pthread_create() is %d\n", rc);
+		exit(-1);
+	      }
+	}
+
+	/* Free attribute and wait for the other threads */
+	pthread_attr_destroy(&attr);
+	for(i=0; i<NUM_THREADS; i++) {
+	     rc = pthread_join(threads[i], &status);
+	     if (rc) {
+		   printf("ERROR; return code from pthread_join() is %d\n", rc);
+		   exit(-1);
+	     }
+	}
+    
+    // printf("\n\n");
+    // getAllMax();
+    // printf("\n\n");
+    // getMax(1, 50);
+    // getMax(51, 100);
+
+    pthread_mutex_destroy(&mutexsum);
+	printf("Main: program completed. Exiting.\n");
+	pthread_exit(NULL);
+
+
+   
 
     return 0;
 }
 
-//--------------- Declare Functions here --------------//
+//------------------------- Declare Functions here ------------------------//
 void getLine(FILE *filePointer)
 {
     //Check if file opened successfully
@@ -173,4 +218,16 @@ void getAllMax()
         maxValues[i] = max;
         printf("Line %d Max: %d\n", i+1, max);  
     }  
+}
+
+void *getMaxParrallel(void *myID)
+{
+    int startPos = ((int) myID) * (LineCounter / NUM_THREADS);
+    int endPos = startPos + (LineCounter / NUM_THREADS);
+
+    printf("myID = %d startPos = %d endPos = %d \n", (int) myID, startPos, endPos);
+
+    getMax(startPos, endPos);
+
+    pthread_exit(NULL);
 }
