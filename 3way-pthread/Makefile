@@ -1,4 +1,4 @@
-pthread: pthread.h pthread.c
-	gcc -g -o pthread pthread.h pthread.c
+pthread: pthread.c
+	gcc -pthread -g -o pthread pthread.c
 pthreadTest: pthread
 	./pthread

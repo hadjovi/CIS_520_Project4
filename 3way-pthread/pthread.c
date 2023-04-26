@@ -30,9 +30,22 @@ void getAllMax();
 
 void *getMaxParrallel(void *myID);
 
+void printMaxValues();
+
 //--------------- Main Code starts here --------------//
 int main()
-{    
+{
+    //Set up the pthreads ---------------
+    int i, rc;
+	pthread_t threads[NUM_THREADS];
+	pthread_attr_t attr;
+	void *status;
+
+	/* Initialize and set thread detached attribute */
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+    //----------------------------------------------------------//
+
     //open file
     FILE *filePointer;
     
@@ -50,52 +63,35 @@ int main()
     fclose(filePointer);
 
     //get Maximum ASCII value from each line
-    maxValues = malloc(LineCounter * sizeof(int));
-
-    //Set up the pthreads ---------------
-    int i, rc;
-	pthread_t threads[NUM_THREADS];
-	pthread_attr_t attr;
-	void *status;
-
-	/* Initialize and set thread detached attribute */
-	pthread_attr_init(&attr);
-	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-    //----------------------------------------------------------//
-
+    maxValues = malloc(LineCounter * sizeof(int));  
 
     //Start parallel work---------------------------//
     for (i = 0; i < NUM_THREADS; i++ ) 
     {
 	      rc = pthread_create(&threads[i], &attr, getMaxParrallel, (void *)i);
-	      if (rc) {
+	      if (rc) 
+          {
 	        printf("ERROR; return code from pthread_create() is %d\n", rc);
-		exit(-1);
+		    exit(-1);
 	      }
-	}
+	}      
 
 	/* Free attribute and wait for the other threads */
 	pthread_attr_destroy(&attr);
-	for(i=0; i<NUM_THREADS; i++) {
+	for(i = 0; i < NUM_THREADS; i++) 
+    {
 	     rc = pthread_join(threads[i], &status);
-	     if (rc) {
+         printf("\nParrallel is now done\n");
+	     if (rc) 
+         {
 		   printf("ERROR; return code from pthread_join() is %d\n", rc);
 		   exit(-1);
 	     }
 	}
-    
-    // printf("\n\n");
-    // getAllMax();
-    // printf("\n\n");
-    // getMax(1, 50);
-    // getMax(51, 100);
 
     pthread_mutex_destroy(&mutexsum);
 	printf("Main: program completed. Exiting.\n");
-	pthread_exit(NULL);
-
-
-   
+	pthread_exit(NULL);   
 
     return 0;
 }
@@ -112,8 +108,6 @@ void getLine(FILE *filePointer)
 
     //Create a temporary buffer to get the data
     char buffLine[BUFFER_SIZE];
-       
-    printf("About to start reading\n");
 
     int len;
 
@@ -126,11 +120,13 @@ void getLine(FILE *filePointer)
     }
     rewind(filePointer);
 
-    printf("\n Number of Line is %d\n", LineCounter);
+    printf("Number of Lines : %d\n\n", LineCounter);
 }
 
 void copyFile(FILE *filePointer)
 {
+    int i;
+
     //copy data to a file buffer
     
     fileBuff = malloc(LineCounter * sizeof(char *));       
@@ -141,7 +137,7 @@ void copyFile(FILE *filePointer)
         return;
     }
 
-    for(int i = 0; i < LineCounter; i++)
+    for(i = 0; i < LineCounter; i++)
     {
         fileBuff[i] = (char *) malloc(BUFFER_SIZE * sizeof(char));
 
@@ -156,7 +152,7 @@ void copyFile(FILE *filePointer)
     char buffLine[BUFFER_SIZE];
 
     // Read file line by line and store each line in the array
-    for (int i = 0; i < LineCounter; i++) 
+    for (i = 0; i < LineCounter; i++) 
     {
         fgets(buffLine, BUFFER_SIZE, filePointer);
         strcpy(fileBuff[i], buffLine);
@@ -165,10 +161,10 @@ void copyFile(FILE *filePointer)
 
 void printBuffer()
 {
-    int len;
+    int i, len;
 
     //prints file buffer
-    for(int i = 0; i < LineCounter; i++)
+    for(i = 0; i < LineCounter; i++)
     {
         len = strlen(fileBuff[i]);
         printf("\n\n");
@@ -176,48 +172,15 @@ void printBuffer()
     }
 }
 
-void getMax(int start, int stop)
+void printMaxValues()
 {
-    int len;
-    int max;
-    int cur;
-    for(int i = start-1; i < stop; i++)
-    {
-        len = strlen(fileBuff[i]);
-        max = 0;
-        for(int j = 0; j < len-1; j++)
-        {
-            cur = (int) fileBuff[i][j];
-            if(cur > max && cur < 123)
-            {
-                max = cur;
-            }
-        }
-        maxValues[i] = max;
-        printf("Line %d Max: %d\n", i+1, max);  
-    }  
-}
+    int i;
 
-void getAllMax()
-{
-    int len;
-    int max;
-    int cur;
-    for(int i = 0; i < LineCounter; i++)
+    //prints file buffer
+    for(i = 0; i < LineCounter; i++)
     {
-        len = strlen(fileBuff[i]);
-        max = 0;
-        for(int j = 0; j < len-1; j++)
-        {
-            cur = (int) fileBuff[i][j];
-            if(cur > max && cur < 123)
-            {
-                max = cur;
-            }
-        }
-        maxValues[i] = max;
-        printf("Line %d Max: %d\n", i+1, max);  
-    }  
+        printf("Line %d Max: %d\n", i+1, maxValues[i]); 
+    }
 }
 
 void *getMaxParrallel(void *myID)
@@ -227,7 +190,28 @@ void *getMaxParrallel(void *myID)
 
     printf("myID = %d startPos = %d endPos = %d \n", (int) myID, startPos, endPos);
 
-    getMax(startPos, endPos);
+    int len;
+    int max;
+    int cur;
+    int i , j;
+
+    pthread_mutex_lock (&mutexsum);
+    for(i = startPos-1; i < endPos; i++)
+    {
+        len = strlen(fileBuff[i]);
+        max = 0;
+        for(j = 0; j < len-1; j++)
+        {
+            cur = (int) fileBuff[i][j];
+            if(cur > max && cur < 123)
+            {
+                max = cur;
+            }
+        }
+        maxValues[i] = max;
+        printf("Line %d Max: %d\n", i+1, maxValues[i]);  
+    }
+    pthread_mutex_unlock (&mutexsum);    
 
     pthread_exit(NULL);
 }
