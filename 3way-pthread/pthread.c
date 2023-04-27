@@ -4,7 +4,7 @@
 #include <pthread.h>
 
 //--------------- Declare constants here --------------//
-#define NUM_THREADS 4
+#define NUM_THREADS 9
 #define BUFFER_SIZE 2005
 
 //--------------- Declare Global Variable here --------------//
@@ -81,13 +81,15 @@ int main()
 	for(i = 0; i < NUM_THREADS; i++) 
     {
 	     rc = pthread_join(threads[i], &status);
-         printf("\nParrallel is now done\n");
 	     if (rc) 
          {
 		   printf("ERROR; return code from pthread_join() is %d\n", rc);
 		   exit(-1);
 	     }
 	}
+ 
+   printf("\n\n"); 
+   printMaxValues();
 
     pthread_mutex_destroy(&mutexsum);
 	printf("Main: program completed. Exiting.\n");
@@ -119,7 +121,9 @@ void getLine(FILE *filePointer)
         len = strlen(buffLine);
     }
     rewind(filePointer);
-
+    
+    printf("\n\n");
+    
     printf("Number of Lines : %d\n\n", LineCounter);
 }
 
@@ -196,7 +200,7 @@ void *getMaxParrallel(void *myID)
     int i , j;
 
     pthread_mutex_lock (&mutexsum);
-    for(i = startPos-1; i < endPos; i++)
+    for(i = startPos; i < endPos; i++)
     {
         len = strlen(fileBuff[i]);
         max = 0;
@@ -208,8 +212,7 @@ void *getMaxParrallel(void *myID)
                 max = cur;
             }
         }
-        maxValues[i] = max;
-        printf("Line %d Max: %d\n", i+1, maxValues[i]);  
+        maxValues[i] = max;  
     }
     pthread_mutex_unlock (&mutexsum);    
 
