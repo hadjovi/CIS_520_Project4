@@ -117,8 +117,7 @@ void getLine(FILE *filePointer)
     while(fgets(buffLine, BUFFER_SIZE, filePointer))
     {
         //update Counter
-        LineCounter++;
-        len = strlen(buffLine);
+        LineCounter++;        
     }
     rewind(filePointer);
     
@@ -129,7 +128,7 @@ void getLine(FILE *filePointer)
 
 void copyFile(FILE *filePointer)
 {
-    int i;
+    int i, len;
 
     //copy data to a file buffer
     
@@ -141,24 +140,27 @@ void copyFile(FILE *filePointer)
         return;
     }
 
-    for(i = 0; i < LineCounter; i++)
-    {
-        fileBuff[i] = (char *) malloc(BUFFER_SIZE * sizeof(char));
-
-        if (fileBuff[i] == NULL) 
-        {
-            printf("Could not allocate memory for array[%d]", i);
-            return;
-        } 
-    } 
-
     //Create a temporary buffer to get the data
     char buffLine[BUFFER_SIZE];
 
     // Read file line by line and store each line in the array
     for (i = 0; i < LineCounter; i++) 
-    {
+    {      
+        //get line into buffer
         fgets(buffLine, BUFFER_SIZE, filePointer);
+
+        //get line size
+        len = strlen(buffLine) + 1;
+
+        //allocate space for line
+        fileBuff[i] = (char *) malloc(len * sizeof(char));
+        if (fileBuff[i] == NULL) 
+        {
+            printf("Could not allocate memory for array[%d]", i);
+            return;
+        } 
+
+        //copy line to file buffer
         strcpy(fileBuff[i], buffLine);
     }
 }
@@ -192,6 +194,10 @@ void *getMaxParrallel(void *myID)
     int startPos = ((int) myID) * (LineCounter / NUM_THREADS);
     int endPos = startPos + (LineCounter / NUM_THREADS);
 
+    if(((int) myID) == NUM_THREADS - 1)
+    {
+        endPos = endPos + LineCounter % NUM_THREADS;
+    }
     printf("myID = %d startPos = %d endPos = %d \n", (int) myID, startPos, endPos);
 
     int len;
