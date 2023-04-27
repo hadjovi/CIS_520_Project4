@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <sys/time.h>
 
 //--------------- Declare constants here --------------//
 #define NUM_THREADS 9
@@ -16,6 +17,10 @@ char **fileBuff;
 int *maxValues;
 
 pthread_mutex_t mutexsum;			// mutex for maxValues
+
+struct timeval t1, t2;
+
+double elapsedTime;
 
 //--------------- Declare Functions Prototype here --------------//
 void getMax(int, int);
@@ -35,6 +40,9 @@ void printMaxValues();
 //--------------- Main Code starts here --------------//
 int main()
 {
+    //start counting the time
+    gettimeofday(&t1, NULL);
+
     //Set up the pthreads ---------------
     int i, rc;
 	pthread_t threads[NUM_THREADS];
@@ -94,6 +102,14 @@ int main()
     pthread_mutex_destroy(&mutexsum);
 	printf("Main: program completed. Exiting.\n");
 	pthread_exit(NULL);   
+
+    //stop the timer
+    gettimeofday(&t2, NULL);
+
+    //print time
+    elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0; //sec to ms
+	elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0; // us to ms
+	printf("Pthread Program:: THREADS: %d, SLURM: %s, TIME: %f\n", NUM_THREADS, getenv("SLURM_NTASKS"),  elapsedTime);
 
     return 0;
 }
