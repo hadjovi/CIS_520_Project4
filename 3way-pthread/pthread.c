@@ -3,9 +3,13 @@
 #include <string.h>
 #include <pthread.h>
 #include <sys/time.h>
+#include <stdint.h>
+
+#include "sys/types.h"
+#include "sys/sysinfo.h"
 
 //--------------- Declare constants here --------------//
-#define NUM_THREADS 9
+#define NUM_THREADS 10
 #define BUFFER_SIZE 2005
 
 //--------------- Declare Global Variable here --------------//
@@ -22,6 +26,12 @@ struct timeval t1, t2;
 
 double elapsedTime;
 
+typedef struct 
+{
+	uint32_t virtualMem;
+	uint32_t physicalMem;
+} processMem_t;
+
 //--------------- Declare Functions Prototype here --------------//
 void getMax(int, int);
 
@@ -36,6 +46,8 @@ void getAllMax();
 void *getMaxParrallel(void *myID);
 
 void printMaxValues();
+
+void GetProcessMemory(processMem_t* processMem);
 
 //--------------- Main Code starts here --------------//
 int main()
@@ -99,17 +111,25 @@ int main()
    printf("\n\n"); 
    printMaxValues();
 
-    pthread_mutex_destroy(&mutexsum);
-	printf("Main: program completed. Exiting.\n");
-	pthread_exit(NULL);   
-
     //stop the timer
     gettimeofday(&t2, NULL);
 
+    //Get process memory
+    processMem_t myMem; 
+
+	GetProcessMemory(&myMem);
+	
     //print time
     elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0; //sec to ms
 	elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0; // us to ms
 	printf("Pthread Program:: THREADS: %d, SLURM: %s, TIME: %f\n", NUM_THREADS, getenv("SLURM_NTASKS"),  elapsedTime);
+	printf("Memory: vMem %u KB, pMem %u KB\n", myMem.virtualMem, myMem.physicalMem);
+	
+    pthread_mutex_destroy(&mutexsum);
+	printf("Main: program completed. Exiting.\n");
+	pthread_exit(NULL);   
+
+    
 
     return 0;
 }
@@ -239,4 +259,33 @@ void *getMaxParrallel(void *myID)
     pthread_mutex_unlock (&mutexsum);    
 
     pthread_exit(NULL);
+}
+
+int parseLine(char *line) 
+{
+	// This assumes that a digit will be found and the line ends in " Kb".
+	int i = strlen(line);
+	const char *p = line;
+	while (*p < '0' || *p > '9') p++;
+	line[i - 3] = '\0';
+	i = atoi(p);
+	return i;
+}
+
+void GetProcessMemory(processMem_t* processMem) 
+{
+	FILE *file = fopen("/proc/self/status", "r");
+	char line[128];
+
+	while (fgets(line, 128, file) != NULL) {
+		//printf("%s", line);
+		if (strncmp(line, "VmSize:", 7) == 0) {
+			processMem->virtualMem = parseLine(line);
+		}
+
+		if (strncmp(line, "VmRSS:", 6) == 0) {
+			processMem->physicalMem = parseLine(line);
+		}
+	}
+	fclose(file);
 }
