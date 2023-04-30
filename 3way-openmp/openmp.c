@@ -29,7 +29,6 @@ int i,j;
 
 //Do the printing
 void outPrint(){
-    //for(i = 0; i < numLines; i++){
     for(i = 0; i < 100; i++){
         printf("%d: %d\n", i , hsSave[i]);
     }
@@ -37,8 +36,6 @@ void outPrint(){
 
 
 //Front Runner
-//Fills ptr_array with newlines
-//Updates numLines
 void frontRunner(){
     FILE * fp = fopen("/homes/dan/625/wiki_dump.txt", "r");
     
@@ -52,6 +49,7 @@ void frontRunner(){
         char c = fgetc(fp);
         buffers[numLines][i] = c;
         i = i + 1;
+        
         //If its an end of the line, handle it!
         if(c == '\n'){
             numLines = numLines + 1;
@@ -77,8 +75,6 @@ void parallelPart(int myID, int NUM_THREADS){
 		    endPos = endPos + LINES % NUM_THREADS;
 		}
 
-		printf("myID = %d startPos = %d endPos = %d \n", myID, startPos, endPos);
-        
         for(i = startPos; i < endPos; i++){
             for(j = 0; j < LINE_LENGTH; j++){
                 if(buffers[i][j] > hs){
@@ -86,7 +82,6 @@ void parallelPart(int myID, int NUM_THREADS){
                 }
             }
             hsSave[i] = hs;
-            //printf("LINE %d: %d\n",i,hs);
             hs = -2;
         }
     }
@@ -107,7 +102,6 @@ void GetProcessMemory(processMem_t* processMem) {
 	char line[128];
 
 	while (fgets(line, 128, file) != NULL) {
-		//printf("%s", line);
 		if (strncmp(line, "VmSize:", 7) == 0) {
 			processMem->virtualMem = parseLine(line);
 		}
@@ -151,6 +145,6 @@ int main(int argc, char *argv[]){
     
     GetProcessMemory(&myMem);
     printf("Memory: vMem %u KB, pMem %u KB\n", myMem.virtualMem, myMem.physicalMem);
-    return 0;
     
+    return 0;
 }
