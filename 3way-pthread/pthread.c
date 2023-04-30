@@ -9,7 +9,7 @@
 #include "sys/sysinfo.h"
 
 //--------------- Declare constants here --------------//
-#define NUM_THREADS 10
+//#define NUM_THREADS 1
 #define BUFFER_SIZE 2005
 
 //--------------- Declare Global Variable here --------------//
@@ -26,7 +26,9 @@ struct timeval t1, t2;
 
 double elapsedTime;
 
-typedef struct 
+int NUM_THREADS = 1;
+
+typedef  struct 
 {
 	uint32_t virtualMem;
 	uint32_t physicalMem;
@@ -50,11 +52,11 @@ void printMaxValues();
 void GetProcessMemory(processMem_t* processMem);
 
 //--------------- Main Code starts here --------------//
-int main()
+int main(int argc, char *argv[])
 {
-    //start counting the time
-    gettimeofday(&t1, NULL);
-
+    //Determine Threads by first argument
+    NUM_THREADS = atoi(argv[1]);
+    
     //Set up the pthreads ---------------
     int i, rc;
 	pthread_t threads[NUM_THREADS];
@@ -69,7 +71,9 @@ int main()
     //open file
     FILE *filePointer;
     
-    filePointer = fopen("../wiki_100.txt", "r");
+    //filePointer = fopen("../wiki_100.txt", "r");
+    
+    filePointer = fopen("/homes/dan/625/wiki_dump.txt", "r");
     
     //get the number of lines and update counter
     getLine(filePointer);
@@ -83,7 +87,10 @@ int main()
     fclose(filePointer);
 
     //get Maximum ASCII value from each line
-    maxValues = malloc(LineCounter * sizeof(int));  
+    maxValues = malloc(LineCounter * sizeof(int)); 
+    
+    //start counting the time
+    gettimeofday(&t1, NULL);
 
     //Start parallel work---------------------------//
     for (i = 0; i < NUM_THREADS; i++ ) 
@@ -107,12 +114,12 @@ int main()
 		   exit(-1);
 	     }
 	}
- 
-   printf("\n\n"); 
-   printMaxValues();
-
-    //stop the timer
+	
+	//stop the timer
     gettimeofday(&t2, NULL);
+ 
+    printf("\n"); 
+    //printMaxValues();
 
     //Get process memory
     processMem_t myMem; 
@@ -122,11 +129,12 @@ int main()
     //print time
     elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0; //sec to ms
 	elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0; // us to ms
-	printf("Pthread Program:: THREADS: %d, SLURM: %s, TIME: %f\n", NUM_THREADS, getenv("SLURM_NTASKS"),  elapsedTime);
+	printf("Pthread Program:: THREADS: %d,TIME: %f\n", NUM_THREADS, elapsedTime);
 	printf("Memory: vMem %u KB, pMem %u KB\n", myMem.virtualMem, myMem.physicalMem);
 	
     pthread_mutex_destroy(&mutexsum);
 	printf("Main: program completed. Exiting.\n");
+	printf("\n\n");
 	pthread_exit(NULL);   
 
     
@@ -157,9 +165,9 @@ void getLine(FILE *filePointer)
     }
     rewind(filePointer);
     
-    printf("\n\n");
+    //printf("\n\n");
     
-    printf("Number of Lines : %d\n\n", LineCounter);
+    //printf("Number of Lines : %d\n\n", LineCounter);
 }
 
 void copyFile(FILE *filePointer)
@@ -249,7 +257,7 @@ void *getMaxParrallel(void *myID)
         for(j = 0; j < len-1; j++)
         {
             cur = (int) fileBuff[i][j];
-            if(cur > max && cur < 123)
+            if(cur > max)
             {
                 max = cur;
             }
