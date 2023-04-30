@@ -1,0 +1,115 @@
+OPENMP OUTPUT FOR THE FOLLOWING CONFIGURATIONS
+
+1 Node:
+
+1T:
+Pthread Program:: THREADS: 1, TIME: 38685.984000
+Memory: vMem 1966736 KB, pMem 1958716 KB
+
+2T:
+Pthread Program:: THREADS: 2, TIME: 37854.603000
+Memory: vMem 1974932 KB, pMem 1958748 KB
+	
+4T:
+Pthread Program:: THREADS: 4, TIME: 35344.607000
+Memory: vMem 1991324 KB, pMem 1958780 KB
+
+8T:
+Pthread Program:: THREADS: 8, TIME: 36596.025000
+Memory: vMem 2024108 KB, pMem 1958180 KB
+
+10T: 
+Pthread Program:: THREADS: 10, TIME: 35470.672000
+Memory: vMem 2040500 KB, pMem 1958420 KB
+
+20T:
+Pthread Program:: THREADS: 20, TIME: 35246.672000
+Memory: vMem 2122460 KB, pMem 1957736 KB
+
+25T:
+Pthread Program:: THREADS: 25, TIME: 34587.648000
+Memory: vMem 2163440 KB, pMem 1957788 KB
+
+30T:
+Pthread Program:: THREADS: 30, TIME: 35764.053000
+Memory: vMem 2204420 KB, pMem 1957840 KB
+
+40T:
+Pthread Program:: THREADS: 40, TIME: 34999.841000
+Memory: vMem 2286380 KB, pMem 1957936 KB
+
+
+2 Nodes:
+1T:
+Pthread Program:: THREADS: 1, TIME: 34812.960000
+Memory: vMem 1966736 KB, pMem 1958760 KB
+
+2T:
+Pthread Program:: THREADS: 2, TIME: 34589.975000
+Memory: vMem 1974932 KB, pMem 1958772 KB	
+
+4T:
+Pthread Program:: THREADS: 4, TIME: 35937.243000
+Memory: vMem 1991324 KB, pMem 1958772 KB
+
+8T:
+Pthread Program:: THREADS: 8, TIME: 34624.892000
+Memory: vMem 2024108 KB, pMem 1958528 KB
+
+10T: 
+Pthread Program:: THREADS: 10, TIME: 34765.533000
+Memory: vMem 2040500 KB, pMem 1958268 KB
+
+20T:
+Pthread Program:: THREADS: 20, TIME: 34512.092000
+Memory: vMem 2122460 KB, pMem 1957560 KB
+
+25T:
+Pthread Program:: THREADS: 25, TIME: 33911.662000
+Memory: vMem 2163440 KB, pMem 1957720 KB
+
+30T:
+Pthread Program:: THREADS: 30, TIME: 33147.699000
+Memory: vMem 2204420 KB, pMem 1957732 KB
+
+40T:
+Pthread Program:: THREADS: 40, TIME: 33808.902000
+Memory: vMem 2286380 KB, pMem 1955408 KB
+
+
+4 Nodes:
+1T:
+Pthread Program:: THREADS: 1, TIME: 37137.865000
+Memory: vMem 1966736 KB, pMem 1958760 KB
+
+2T:
+Pthread Program:: THREADS: 2, TIME: 28038.826000
+Memory: vMem 1974932 KB, pMem 1958760 KB
+
+4T:
+Pthread Program:: THREADS: 4, TIME: 33807.659000
+Memory: vMem 1991324 KB, pMem 1958796 KB
+
+8T:
+Pthread Program:: THREADS: 8, TIME: 39183.782000
+Memory: vMem 2024108 KB, pMem 1958504 KB
+
+10T:
+Pthread Program:: THREADS: 8, TIME: 34351.750000
+Memory: vMem 2024108 KB, pMem 1958448 KB
+
+20T:
+Pthread Program:: THREADS: 20, TIME: 33224.044000
+Memory: vMem 2122460 KB, pMem 1958156 KB
+
+25T:
+Pthread Program:: THREADS: 25, TIME: 32489.664000
+Memory: vMem 2163440 KB, pMem 1958196 KB
+
+30T:
+Pthread Program:: THREADS: 30, TIME: 31185.780000
+Memory: vMem 2204420 KB, pMem 1958240 KB
+
+40T:
+Pthread Program:: THREADS: 40, TIME: 31463.383000
+Memory: vMem 2286380 KB, pMem 1958332 KB
