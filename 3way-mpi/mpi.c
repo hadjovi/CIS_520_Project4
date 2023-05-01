@@ -1,4 +1,4 @@
-#include <stdio.h>
+vim#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
@@ -67,29 +67,26 @@ int main(int argc, char **argv)
         //get the number of lines and update counter
         getLine(filePointer);
         //allocate final array
-        maxValues = malloc((lineNumberTotal + 100) * sizeof(int));
+        maxValues = malloc((lineNumberTotal + 1) * sizeof(int));
         
         //close the file
-        fclose(filePointer);
-        printf("Leaving first Master if statement \n"); fflush(stdout);
     }
     
     //cast line number total
     MPI_Bcast(&lineNumberTotal, 1, MPI_INT, 0, MPI_COMM_WORLD);
-    toSend = calloc( 0, lineNumberTotal * sizeof(int));
+    toSend = malloc(lineNumberTotal * sizeof(int));
     
     //Do the work
-    printf("Rank = %d starting work \n", rank); fflush(stdout);
     toSend = RankWork(&rank, filePointer);
-    printf("Rank = %d Done work \n", rank); fflush(stdout);
     
     //all threads submit parts of final array
     MPI_Gather(toSend, linesPerRank, MPI_INT, maxValues, linesPerRank, MPI_INT, 0, MPI_COMM_WORLD);
     
     //only one rank runs
     if(rank == 0){
-        printMaxValues();
-    
+	 //use to see the values
+	 printMaxValues()   
+	 
         //Determine Time
         gettimeofday(&t2, NULL);
         elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0; //sec to ms
@@ -127,7 +124,6 @@ void getLine(FILE *filePointer)
     }
     rewind(filePointer);
     
-    printf("\nNumber of Lines : %d\n", lineNumberTotal); fflush(stdout);
 }
 
 int *RankWork(void *rank, FILE *filePointer)
@@ -139,12 +135,10 @@ int *RankWork(void *rank, FILE *filePointer)
 	linesPerRank = endPos - startPos + 1;
 	int *localMaxValues = malloc((linesPerRank) * sizeof(int));
 	if(rank == 0){
-	printf("Lines Per Rank = %d\n", linesPerRank); fflush(stdout);
 	}
-    printf("myRankId = %d startPos = %d endPos = %d \n", myRank, startPos, endPos); fflush(stdout);
     
     //Create a temporary buffer to get the data
-    char *buffLine = calloc(0, BUFFER_SIZE * sizeof(char));
+    char *buffLine = calloc(BUFFER_SIZE, sizeof(char));
     // Read file line by line and store each line in the array
     for (i = 0; i < lineNumberTotal; i++) 
     {   
@@ -165,7 +159,7 @@ void printMaxValues()
     //prints file buffer
     for(i = 0; i < lineNumberTotal; i++)
     {
-        printf("Line %d Max: %d\n", i+1, maxValues[i]); fflush(stdout);
+        printf("Line %d Max: %d\n", i+1, maxValues[i]);
     }
 }
 
