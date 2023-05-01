@@ -1,65 +1,108 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <sys/time.h>
 #include <math.h>
 #include <mpi.h>
-//--------------- Declare constants here --------------//
-#define NUM_RANKS 4
-#define BUFFER_SIZE 2005
-//--------------- Declare Global Variable here --------------//
-int lineNumberTotal, currentLine;
-char **fileBuff;
 
+#include "sys/types.h"
+#include "sys/sysinfo.h"
+//--------------- Declare constants here --------------//
+#define BUFFER_SIZE 2005
+
+//--------------- Timing and memory values and struct here --------------//
+struct timeval t1, t2;
+
+typedef struct {
+	uint32_t virtualMem;
+	uint32_t physicalMem;
+} processMem_t;
+
+//--------------- Declare Global Variable here --------------//
+int lineNumberTotal = 0;
 int *maxValues;
+int *toSend;
 int RankNumber;
+int linesPerRank;
+double elapsedTime;
 
 //--------------- Declare Functions Prototype here --------------//
-void getMax(int, int);
 
 void getLine(FILE*);
 
-void copyFile(FILE *filePointer);
-
-void printBuffer();
-
-void getAllMax();
-
-void RankWork();
+int *RankWork(void *rank, FILE *filePointer);
 
 void printMaxValues();
 
-main(int argc, char **argv)
+int parseLine(char *line);
+
+void GetProcessMemory(processMem_t* processMem);
+
+int GetMaxValue(char * list);
+
+int main(int argc, char **argv)
 {
-    lineNumberTotal = 0, currentLine = 0;
-
-    //open file
-    FILE *filePointer;
-    filePointer = fopen("../wiki_100.txt", "r");
-
-    //get the number of lines and update counter
-    getLine(filePointer);
-
-    //copy file into file buffer
-    copyFile(filePointer);
-
-    //close the file
-    fclose(filePointer);
-    
-    //get Maximum ASCII value from each line
-    maxValues = malloc(lineNumberTotal * sizeof(int));
-
-
     /* Process work is below*/
-    int ierr, rank;
-    int rank_firstLine, rank_lastLine;
+    //process start
+    int ierr, rank, numtasks;
     ierr = MPI_Init(&argc, &argv);
-
-    //Find out how many processes were started.
-    ierr = MPI_Comm_size(MPI_COMM_WORLD, &RankNumber);
-
-    //out of the parallel section
+    if(ierr != MPI_SUCCESS){
+        printf("Error starting MPI program \n");
+            MPI_Abort(MPI_COMM_WORLD, ierr);
+    }
+    //get ranks and size
+    MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    RankNumber = numtasks;
+    printf("size = %d rank = %d\n", RankNumber, rank); fflush(stdout);
+     //open file
+    FILE *filePointer;
+    filePointer = fopen("/homes/dan/625/wiki_dump.txt", "r");
+    
+    if(rank == 0){
+        //Start timer
+        gettimeofday(&t1, NULL);
+        
+        //get the number of lines and update counter
+        getLine(filePointer);
+        //allocate final array
+        maxValues = malloc((lineNumberTotal + 100) * sizeof(int));
+        
+        //close the file
+        fclose(filePointer);
+        printf("Leaving first Master if statement \n"); fflush(stdout);
+    }
+    
+    //cast line number total
+    MPI_Bcast(&lineNumberTotal, 1, MPI_INT, 0, MPI_COMM_WORLD);
+    toSend = calloc( 0, lineNumberTotal * sizeof(int));
+    
+    //Do the work
+    printf("Rank = %d starting work \n", rank); fflush(stdout);
+    toSend = RankWork(&rank, filePointer);
+    printf("Rank = %d Done work \n", rank); fflush(stdout);
+    
+    //all threads submit parts of final array
+    MPI_Gather(toSend, linesPerRank, MPI_INT, maxValues, linesPerRank, MPI_INT, 0, MPI_COMM_WORLD);
+    
+    //only one rank runs
+    if(rank == 0){
+        printMaxValues();
+    
+        //Determine Time
+        gettimeofday(&t2, NULL);
+        elapsedTime = (t2.tv_sec - t1.tv_sec) * 1000.0; //sec to ms
+        elapsedTime += (t2.tv_usec - t1.tv_usec) / 1000.0; // us to ms
+        printf("MPI Program:: RANKS: %d, TIME: %f\n", RankNumber, elapsedTime); fflush(stdout);
+    
+        //Determine Memory
+        processMem_t myMem;
+        GetProcessMemory(&myMem);
+        printf("Memory: vMem %u KB, pMem %u KB\n", myMem.virtualMem, myMem.physicalMem); fflush(stdout);
+    }
+    //Stop MPI
     ierr = MPI_Finalize();
-
     return 0;
 }
 
@@ -69,7 +112,7 @@ void getLine(FILE *filePointer)
     //Check if file opened successfully
     if (filePointer == NULL) 
     {
-        printf("Could not open file\n");
+        printf("Could not open file\n"); 
         return;
     }
 
@@ -83,56 +126,36 @@ void getLine(FILE *filePointer)
         lineNumberTotal++;
     }
     rewind(filePointer);
-
-    printf("Number of Lines : %d\n\n", lineNumberTotal);
-}
-void copyFile(FILE *filePointer)
-{
-    int i;
-
-    //copy data to a file buffer
     
-    fileBuff = malloc(lineNumberTotal * sizeof(char *));       
+    printf("\nNumber of Lines : %d\n", lineNumberTotal); fflush(stdout);
+}
 
-    if (fileBuff == NULL) 
-    {
-        printf("Could not allocate memory for array\n");
-        return;
-    }
-
-    for(i = 0; i < lineNumberTotal; i++)
-    {
-        fileBuff[i] = (char *) malloc(BUFFER_SIZE * sizeof(char));
-
-        if (fileBuff[i] == NULL) 
-        {
-            printf("Could not allocate memory for array[%d]", i);
-            return;
-        } 
-    } 
-
+int *RankWork(void *rank, FILE *filePointer)
+{
+    int lineToStore, myRank, startPos, endPos, i;
+    myRank = *((int*) rank);
+    startPos = ((long)myRank) * (lineNumberTotal / RankNumber);
+	endPos = startPos + (lineNumberTotal / RankNumber) - 1;
+	linesPerRank = endPos - startPos + 1;
+	int *localMaxValues = malloc((linesPerRank) * sizeof(int));
+	if(rank == 0){
+	printf("Lines Per Rank = %d\n", linesPerRank); fflush(stdout);
+	}
+    printf("myRankId = %d startPos = %d endPos = %d \n", myRank, startPos, endPos); fflush(stdout);
+    
     //Create a temporary buffer to get the data
-    char buffLine[BUFFER_SIZE];
-
+    char *buffLine = calloc(0, BUFFER_SIZE * sizeof(char));
     // Read file line by line and store each line in the array
     for (i = 0; i < lineNumberTotal; i++) 
-    {
-        fgets(buffLine, BUFFER_SIZE, filePointer);
-        strcpy(fileBuff[i], buffLine);
+    {   
+        if(i >= startPos && i <= endPos){
+            //get line into buffer
+            fgets(buffLine, BUFFER_SIZE, filePointer);
+            lineToStore = (i - startPos);
+            localMaxValues[lineToStore] = GetMaxValue(buffLine);
+        }
     }
-}
-
-void printBuffer()
-{
-    int i, len;
-
-    //prints file buffer
-    for(i = 0; i < lineNumberTotal; i++)
-    {
-        len = strlen(fileBuff[i]);
-        printf("\n\n");
-        printf("Line %d: %s", i+1, fileBuff[i]);  
-    }
+    return localMaxValues;
 }
 
 void printMaxValues()
@@ -142,34 +165,47 @@ void printMaxValues()
     //prints file buffer
     for(i = 0; i < lineNumberTotal; i++)
     {
-        printf("Line %d Max: %d\n", i+1, maxValues[i]); 
+        printf("Line %d Max: %d\n", i+1, maxValues[i]); fflush(stdout);
     }
 }
 
-void RankWork()
+int parseLine(char *line) {
+	// This assumes that a digit will be found and the line ends in " Kb".
+	int i = strlen(line);
+	const char *p = line;
+	while (*p < '0' || *p > '9') p++;
+	line[i - 3] = '\0';
+	i = atoi(p);
+	return i;
+}
+
+void GetProcessMemory(processMem_t* processMem) 
 {
-    int lines_per_rank, remainder, myRank, startPos, endPos, i, j, hs;
-    MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
+    FILE *file = fopen("/proc/self/status", "r");
+    char line[128];
 
-    hs = -1;
-        
-    startPos = myRank * (lineNumberTotal / RankNumber);
-	endPos = startPos + (lineNumberTotal / RankNumber);
-		
-	if(myRank == RankNumber - 1){
-		endPos = endPos + lineNumberTotal % RankNumber;
-	}
-
-    for(i = startPos; i < endPos; i++)
-    {
-        for(j = 0; j < BUFFER_SIZE; j++)
-        {
-            if(fileBuff[i][j] > hs)
-            {
-                hs = fileBuff[i][j];
-            }
+    while (fgets(line, 128, file) != NULL) {
+        if (strncmp(line, "VmSize:", 7) == 0) {
+            processMem->virtualMem = parseLine(line);
         }
-        maxValues[i] = hs;
-        hs = -2;
+
+        if (strncmp(line, "VmRSS:", 6) == 0) {
+            processMem->physicalMem = parseLine(line);
+        }
     }
+    fclose(file);
+}
+
+
+int GetMaxValue(char * list)
+{
+    int hs = -1;
+    for(int i = 0; i < BUFFER_SIZE; i++)
+    {
+        if(list[i] > hs)
+        {
+            hs = list[i];
+        }
+    }
+    return hs;
 }
