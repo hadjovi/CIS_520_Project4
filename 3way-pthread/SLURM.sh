@@ -1,6 +1,7 @@
 #!/bin/bash -l
 
 #SBATCH --time=0:01:00
+#SBATCH --constraint=moles
 #SBATCH --mem=2G
 #SBATCH --switches=1
 #SBATCH --nodes=1
