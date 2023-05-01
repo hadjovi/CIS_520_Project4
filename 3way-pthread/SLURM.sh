@@ -1,9 +1,9 @@
 #!/bin/bash -l
 
-#SBATCH --time=0:02:00
+#SBATCH --time=0:01:00
 #SBATCH --mem=2G
 #SBATCH --switches=1
-#SBATCH --nodes=4
+#SBATCH --nodes=1
 #SBATCH --ntasks-per-node=4
 
 host=`echo $SLURM_JOB_NODELIST | sed s/[^a-z0-9]/\ /g | cut -f 1 -d ' '`
